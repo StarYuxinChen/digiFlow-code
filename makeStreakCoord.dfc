@@ -1,0 +1,47 @@
+# File: Q:\Users\yc645\LIF-processing-main\LIF-processing-main\digiCode\makeStreakCoord.dfc
+# dfcConsole
+#-----------------------------#
+# # Focus lost at: 20250313_161809
+# Date: Thu Mar 13 16:18:09 2025
+# Build date: 19 December 2024
+################################
+# File: Q:\Users\yc645\LIF-processing-main\LIF-processing-main\digiCode\makeStreakCoord.dfc
+# dfcConsole
+#-----------------------------#
+# # Focus lost at: 20250313_113734
+# Date: Thu Mar 13 11:37:34 2025
+# Build date: 19 December 2024
+################################
+fIn1 := "V:\202311\w314\final_Experiment\Exp2023L2P4_000001\CoordinatesAndCalibrations\CamC_streak_ave.dfi"; #change this to where your streak image is
+det := read_image_details(fIn1);
+dP := 100; #width of the horizontal streaks 
+
+streaks := read_image(fIn1);
+streaks := (streaks-0.1)max 0.00001 ; #subtracks a value that we want to be black 
+#streaks := extract_region(streaks,"laserSheet[20230424]");
+#streaks := rotate_clockwise(streaks);
+
+#yMean := y_mean(streaks);
+#yMean := y_replicate(yMean,streaks);
+#
+#streaks := (streaks/yMean)/mean(streaks/yMean);
+Count := 0; 
+for j := 0 to y_size(streaks)-1
+{   
+    if (Count < dP) 
+    {
+        streaks[:,j] := 0 ;
+    };
+    if (Count == 2*dP)
+    {
+        Count := 0 ;
+    };
+    Count := Count +1
+};
+
+hV := 0;
+view(hV,streaks);
+save_view("streakCoord.dfi");
+
+
+
