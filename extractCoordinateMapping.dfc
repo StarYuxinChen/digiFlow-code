@@ -1,0 +1,77 @@
+# File: Q:\Users\yc645\LIF-processing-main\LIF-processing-main\digiCode\extractCoordinateMapping.dfc
+# dfcConsole
+#-----------------------------#
+# # Focus lost at: 20250318_173152
+# Date: Tue Mar 18 17:31:52 2025
+# Build date: 19 December 2024
+################################
+function WorldBox(width,height,systemName:="(default)") {
+  x := width*[0 1 1 0];
+  y := height*[0,0,1,1];
+  
+  xyW := world_coordinate(x,y,systemName);
+  
+  regW := <<
+    xMin := min_value(xyW.x);
+    xMax := max_value(xyW.x);
+    yMin := min_value(xyW.y);
+    yMax := max_value(xyW.y);
+  >>;
+  regW.xSize := regW.xMax - regW.xMin;
+  regW.ySize := regW.yMax - regW.yMin;
+  regW;
+};
+
+coordSystemList := coord_system_list();
+systemName := ask_list("Chose which",coordSystemList);
+
+#ret1 := coord_system_get_system(systemName);
+#
+#M1 := make_array(0,9,4);
+#dummy := ret1.toPixel.coeffs;
+#
+#M1[:,0:1] := ret1.toPixel.coeffs;
+#M1[:,2:3] := ret1.toWorld.coeffs;
+#M1 := transpose(M1);
+#
+#txt_name1 := systemName + "_MappingCoefficients.txt";
+#txt_file1 := open_file(txt_name1,"unknown","formatted");
+#write_array(txt_file1,M1,"8(f15.10,1x)");
+#close_file(txt_file1);
+
+#yMin1 := 267;
+#yMax1 := 2275;
+#xMin1 := 100; 
+#xMax1 := 1592;
+#w := xMax1-xMin1;
+#h := yMax1-yMin1;
+fIn := "streakCoord[20231211].dfi";
+im := read_image(fIn);
+
+w := x_size(im);
+h := y_size(im);
+
+
+regStreak := WorldBox(w,h,systemName);
+map := coord_system_create_mapping_array(regStreak,w,h,systemName);
+inverseMap := coord_system_create_mapping_array(regStreak,w,h,systemName,true);
+
+x_map := transpose(map[:,:,0]);
+y_map := transpose(map[:,:,1]);
+x_inverse := transpose(inverseMap[:,:,0]);
+y_inverse := transpose(inverseMap[:,:,1]);
+
+txt_name2 := systemName + "_x_map.txt";
+txt_file2 := open_file(txt_name2,"unknown","formatted");
+write_array(txt_file2,x_map,"8(f15.10,1x)");
+close_file(txt_file2);
+
+txt_name3 := systemName + "_y_map.txt";
+txt_file3 := open_file(txt_name3,"unknown","formatted");
+write_array(txt_file3,y_map,"8(f15.10,1x)");
+close_file(txt_file3);
+
+
+
+
+
