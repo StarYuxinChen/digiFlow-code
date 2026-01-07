@@ -1,0 +1,180 @@
+function WorldBox(width,height,systemName:="(default)") {
+  x := width*[0 1 1 0];
+  y := height*[0,0,1,1];
+  
+  xyW := world_coordinate(x,y,systemName);
+  
+  regW := <<
+    xMin := min_value(xyW.x);
+    xMax := max_value(xyW.x);
+    yMin := min_value(xyW.y);
+    yMax := max_value(xyW.y);
+  >>;
+  regW.xSize := regW.xMax - regW.xMin;
+  regW.ySize := regW.yMax - regW.yMin;
+  regW;
+};
+
+function haar_wavelet_transform(image)
+{
+    height := x_size(image);
+    width := y_size(image);
+    transformed_image := make_array(0,height, width);
+    horizontal_freq := make_array(0,height, floor(width/2));
+    vertical_freq := make_array(0,floor(height/2), floor(width/2));
+   
+    # Horizontal transformation
+    for i := 0 to (height-1)
+    {
+        for j := 0 to (width-1) step 2
+        {
+            avg := (image[i, j] + image[i, j + 1]) / 2;
+            diff := (image[i, j] - image[i, j + 1]) / 2;
+            transformed_image[i, floor(j/2)] := avg;
+            transformed_image[i, floor(j/ 2) + floor(width / 2)] := diff;
+            horizontal_freq[i, floor(j/ 2)] := diff;
+            };
+    };
+    # Vertical transformation
+    temp_image := transformed_image;
+    for i := 0 to floor(width/2)-1
+    {
+        for j := 0 to (height-1) step 2
+        {
+            avg := (temp_image[j, i] + temp_image[j + 1, i]) / 2;
+            diff := (temp_image[j, i] - temp_image[j + 1, i]) / 2;
+            transformed_image[floor(j / 2), i] := avg;
+            transformed_image[floor(j / 2) + floor(height / 2), i] := diff;
+            vertical_freq[floor(j/ 2),i] := diff;
+
+        };
+    };
+    output.transformedImage := transformed_image;
+    output.vert := vertical_freq;
+    output.hor := horizontal_freq;
+    output;
+};
+
+function inverse_haar_wavelet_transform(output)
+{
+    height := x_size(output.transformedImage);
+    width := y_size(output.transformedImage);
+    reconstructed_image := make_array(2*height,2*width);
+    tempImage := make_array(2*height,width);
+    for i := 0 to width-1 
+    {
+        for j:= o to height-1
+        {
+            avg := output.hor[j,i];
+            diff := output.vert[j,i];
+            temp_image[j*2,i]:= avg+diff;
+            temp_image[(j*2)+1,i] := avg-diff;
+        };
+    };
+    for i := 0 to height*2 -1
+    {
+        for j:= o to floor(width/2)
+        {
+            avg := temp_image[i,j];
+            diff := temp_image[i,j+floor(width/2)];
+            reconstructed_image[i,j*2]:= avg+diff;
+            reconstructed_image[i,(j*2)+1] := avg-diff;
+        };
+    };
+
+    reconstructed_image;
+};
+
+
+fIn2 := ask_image("Choose Raw PLIF movie");
+#fIn1 := ask_image("Choose Streak image");
+#fIn3 := ask_image("Choose background image");
+det := read_image_details(fIn2);
+
+#yMin1 := 267;
+#yMax1 := 2275;
+#xMin1 := 100; 
+#xMax1 := 1592;
+#region_create("PIV",xMin1,xMax1,yMin1,yMax1);
+#w := xMax1-xMin1;
+#h := yMax1-yMin1;
+w := det.nx;
+h := det.ny;
+
+#streaks := read_image(fIn1);
+#streaks := (streaks-0.03)max 0.00001 ;
+#streaks := extract_region(streaks,"PIV");
+input := read_image(fIn2,700);
+input := (input-0.03)max 0.00001 ;
+#input := extract_region(input,"PIV");
+
+#mask := input >=0.9;
+#input := filter_max(input,mask);
+#view(input);
+
+#uniform := read_image(fIn3);
+#uniform := (uniform-0.03)max 0.00001 ;
+#uniform := extract_region(uniform,"PIV");
+
+coordSystemList := coord_system_list();
+systemName := ask_list("Chose which",coordSystemList);
+regRhoStreak := WorldBox(w,h,systemName);
+map := coord_system_create_mapping_array(regRhoStreak,w,h,systemName);
+inverseMap := coord_system_create_mapping_array(regRhoStreak,w,h,systemName,true);
+rhoStreak := coord_system_transform_array(input,map);
+
+view(rhoStreak);
+
+rhoStreakInverse := coord_system_transform_array(rhoStreak,inverseMap);
+
+view(rhoStreakInverse);
+
+#save_view("rhoSampleStreakCoords.dfi")
+
+#spec := fft_2d(rhoStreak);
+#
+#cond := abs(spec.kx) > 50 and abs(spec.ky) < 5;
+##view(hV,spec.kx);
+#spec.re := where(cond,0,spec.re);
+#spec.im := where(cond,0,spec.im);
+#image := inverse_fft_2d(spec);
+#corr := image.re;
+#
+#view(corr);
+#
+#blah := haar_wavelet_transform(rhoStreak);
+#view(blah.transformedImage);
+#
+#
+#
+#output :=blah;
+#height := x_size(output.transformedImage);
+#width := y_size(output.transformedImage);
+#reconstructed_image := make_array(2*height,2*width);
+#temp_image := make_array(2*height,width);
+#for i := 0 to width-1 
+#{
+#    for j:= 0 to height-1
+#    {
+#        avg := output.hor[j,i];
+#        diff := output.vert[j,i];
+#        temp_image[j*2,i]:= avg+diff;
+#        temp_image[(j*2)+1,i] := avg-diff;
+#    };
+#};
+#for i := 0 to height*2 -1
+#{
+#    for j:= o to floor(width/2)
+#    {
+#        avg := temp_image[i,j];
+#        diff := temp_image[i,j+floor(width/2)];
+#        reconstructed_image[i,j*2]:= avg+diff;
+#        reconstructed_image[i,(j*2)+1] := avg-diff;
+#    };
+#};
+#
+#
+#
+#recon := inverse_haar_wavelet_transform(blah);
+#view(recon);
+#
